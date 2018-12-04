@@ -1,4 +1,7 @@
-
+to setup
+  ca
+  crt 1
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -26,6 +29,23 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
+
+BUTTON
+130
+61
+196
+94
+NIL
+setup\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
