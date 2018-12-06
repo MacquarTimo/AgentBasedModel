@@ -1,6 +1,11 @@
 to setup
   ca
   crt 1
+  speak
+end
+
+to speak
+  print "hello world"
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
