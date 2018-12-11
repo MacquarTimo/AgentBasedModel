@@ -1,11 +1,106 @@
-to setup
+breed [Industries Indudustry]
+
+
+globals [
+  PoRA-Coffin
+  Government-Budget
+  list-of-buyers
+]
+
+Industries-own [
+  Willignes-to-Pay
+  Recieved-Subsidies]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;                    ;;
+;;       Setup        ;;
+;;                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+to Setup
   ca
-  crt 1
-  speak
+  reset-ticks
+  Create-Rotterdam
 end
 
-to speak
-  print "hello world"
+
+to Create-Rotterdam
+  create-industries Number-Industries
+  ask Industries [
+    setxy random-xcor random-ycor  ;; for now we do not have any information about the locations, so we put them random
+    set color brown]                ;; all industries get to color brown as a visual seperation
+end
+
+
+to Go
+  tick
+  Allocation-Budget
+  Market-Mechanism
+end
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;                    ;;
+;;       Budget       ;;
+;;                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+to Allocation-Budget
+  let subisidie-per-industrie 0
+
+  set PoRA-Coffin PoRA-Coffin + Yearly-Budget-Gov
+  let subsidie-per-industrie Yearly-Budget-Gov / Number-Industries
+
+  ask Industries [
+    set Recieved-Subsidies subsidie-per-industrie         ;; industries get their subsidies
+    set PoRA-Coffin PoRA-Coffin - subsidie-per-industrie] ;; subsidiy is taken out of the government coffin
+end
+
+to Market-Mechanism
+  let price-peanuts 120          ;; for this model a random price, see this as the CO2-price
+  let interested-industries 0    ;; PoRA needs to know how much capacity is asked. In this model we just test the number of interested
+  let max-capacitiy 2
+  set list-of-buyers []
+
+  ask industries [
+    set color brown
+   define-WTP
+    if Willignes-to-Pay > price-peanuts [
+      set color red
+      set interested-industries interested-industries + 1
+      set list-of-buyers insert-item 0 list-of-buyers self
+    ]
+  ]
+
+  ifelse interested-industries > 0 [
+    print list-of-buyers
+    ifelse  max-capacitiy >= interested-industries [
+      print "We have sufficient capacity"
+      repply-to-industries]
+      [print "We do not have sufficient capacity"]
+  ]
+  [print "No offers were made"]
+
+end
+
+to define-WTP
+  set Willignes-to-Pay 100 + random 40 - Recieved-Subsidies
+end
+
+to repply-to-industries
+  let number-of-buyers length list-of-buyers ;; we count the number of indurtries
+
+  repeat number-of-buyers [
+    ask item (number-of-buyers - 1) list-of-buyers [
+    set color white
+      set number-of-buyers number-of-buyers - 1]
+  ]
+
+
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -22,8 +117,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -16
 16
@@ -36,13 +131,97 @@ ticks
 30.0
 
 BUTTON
-130
-61
-196
-94
+15
+87
+153
+120
 NIL
-setup\n
+Setup\n\n
 NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+42
+10
+192
+30
+Model Run
+16
+0.0
+1
+
+TEXTBOX
+714
+16
+864
+36
+Simulation Setup
+16
+0.0
+1
+
+SLIDER
+684
+62
+864
+95
+Number-Industries
+Number-Industries
+1
+25
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+685
+112
+864
+145
+Yearly-Budget-Gov
+Yearly-Budget-Gov
+0
+100
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+15
+47
+86
+80
+NIL
+Go\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+90
+47
+153
+80
+NIL
+Go
+T
 1
 T
 OBSERVER
