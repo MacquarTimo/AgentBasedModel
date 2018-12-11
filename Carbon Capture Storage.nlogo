@@ -30,7 +30,7 @@ to Create-Rotterdam
   create-industries Number-Industries
   ask Industries [
     setxy random-xcor random-ycor  ;; for now we do not have any information about the locations, so we put them random
-    set color orange]                ;; all industries get to color brown as a visual seperation
+    set color brown]                ;; all industries get to color brown as a visual seperation
 end
 
 
