@@ -1,14 +1,20 @@
-breed [Industries Indudustry]
-
+breed [Industries Industry]
 
 globals [
   PoRA-Coffin
   Government-Budget
   list-of-buyers
+  Buyers-Capacity-list
+  Pipeline-Costs-list
+  Pipeline-Capacity-list
+  capacity-status
+  CO2-emission-tax
 ]
 
 Industries-own [
   Willignes-to-Pay
+  CO2-emission
+  CO2-stored
   Recieved-Subsidies]
 
 
@@ -18,28 +24,27 @@ Industries-own [
 ;;                    ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 to Setup
   ca
   reset-ticks
-  Create-Rotterdam
+  Create-Rotterdam                 ;; Indurstries are create. The agent card is created and complete.
+  Create-Data                      ;; The Model recieves all the data that is needed to run.
 end
-
 
 to Create-Rotterdam
   create-industries Number-Industries
   ask Industries [
     setxy random-xcor random-ycor  ;; for now we do not have any information about the locations, so we put them random
-    set color blue]                ;; all industries get to color brown as a visual seperation
+    set color blue                ;; all industries get to color brown as a visual seperation
+    set CO2-emission 3 + random 6]
 end
 
+to Create-Data
+  set Pipeline-Costs-list [120 130 90 140] ;; List with the prices per facility (for now these are non-representative figures)
+  set Pipeline-Capacity-list [20 20 10 30] ;;  List with the capacity per facility (for now these are non-representative figures)
+  set CO2-emission-tax 20
 
-to Go
-  tick
-  Allocation-Budget
-  Market-Mechanism
 end
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,11 +53,24 @@ end
 ;;                    ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-to Allocation-Budget
+to Go
+  tick
+  ;Allocation-Budget ;; at the start of the periode, money is moved around
+  Market-Mechanism  ;; the PoRA proposes and the industries check if they want to buy. --> THIS IS THE KEY OF THE MODEL
+end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;                    ;;
+;;       Budget       ;;
+;;                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+to Allocation-Budget ;; this process is not representative.
   let subisidie-per-industrie 0
 
-  set PoRA-Coffin PoRA-Coffin + Yearly-Budget-Gov
-  let subsidie-per-industrie Yearly-Budget-Gov / Number-Industries
+  set PoRA-Coffin PoRA-Coffin + Yearly-Budget-Gov        ;; the PoRA recieves its subsidies
+  let subsidie-per-industrie Yearly-Budget-Gov / item 0 Pipeline-Capacity-list
 
   ask Industries [
     set Recieved-Subsidies subsidie-per-industrie         ;; industries get their subsidies
@@ -60,48 +78,64 @@ to Allocation-Budget
 end
 
 to Market-Mechanism
-  let price-peanuts 120          ;; for this model a random price, see this as the CO2-price
-  let interested-industries 0    ;; PoRA needs to know how much capacity is asked. In this model we just test the number of interested
-  let max-capacitiy 2
+  let price-peanuts item 0 Pipeline-Costs-list          ;; for this model a random price, see this as the CO2-price
+  let max-capacitiy item 0 Pipeline-Capacity-list
   set list-of-buyers []
+  set Buyers-Capacity-list []
 
   ask industries [
     set color brown
-   define-WTP
-    if Willignes-to-Pay > price-peanuts [
+   define-WTP                    ;; the industries calculate how much they are willing to pay. They use this value to check if they will buy.
+    if price-peanuts <= Willignes-to-Pay [ ;;if the buy price is lower or equal than the price the industries want to pay
       set color red
-      set interested-industries interested-industries + 1
-      set list-of-buyers insert-item 0 list-of-buyers self
+      set list-of-buyers insert-item 0 list-of-buyers self    ;; industrues put themself in the list of buyers
+      set Buyers-Capacity-list insert-item 0 Buyers-Capacity-list CO2-emission ;; industries put their capacity in the list with cap
     ]
   ]
 
-  ifelse interested-industries > 0 [
-    print list-of-buyers
-    ifelse  max-capacitiy >= interested-industries [
-      print "We have sufficient capacity"
-      repply-to-industries]
-      [print "We do not have sufficient capacity"]
-  ]
-  [print "No offers were made"]
+  ifelse length list-of-buyers != 0 [
+    update-status-bidding]
+  [set capacity-status "No offers were made"]
 
+end
+
+to update-status-bidding
+  let max-capacitiy item 0 Pipeline-Capacity-list
+  let demand-for-capacity sum Buyers-Capacity-list
+
+  ifelse  max-capacitiy >= demand-for-capacity [
+      set capacity-status "We have sufficient capacity"
+      reply-sufficient-capacity]
+      [set capacity-status "We do not have sufficient capacity"]
 end
 
 to define-WTP
-  set Willignes-to-Pay 100 + random 40 - Recieved-Subsidies
+  set Willignes-to-Pay CO2-emission * CO2-emission-tax
 end
 
-to repply-to-industries
+to reply-sufficient-capacity
   let number-of-buyers length list-of-buyers ;; we count the number of indurtries
+  let capacity-of-agent 0
 
   repeat number-of-buyers [
+    set capacity-of-agent item (number-of-buyers - 1) Buyers-Capacity-list
     ask item (number-of-buyers - 1) list-of-buyers [
-    set color white
-      set number-of-buyers number-of-buyers - 1]
+      set color white
+      set number-of-buyers number-of-buyers - 1
+      set CO2-stored CO2-stored + CO2-emission
+      set CO2-emission CO2-emission - capacity-of-agent
+      ]
   ]
-
-
-
 end
+
+
+
+
+
+
+
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -158,10 +192,10 @@ Model Run
 1
 
 TEXTBOX
-714
-16
-864
-36
+707
+20
+857
+40
 Simulation Setup
 16
 0.0
@@ -191,7 +225,7 @@ Yearly-Budget-Gov
 Yearly-Budget-Gov
 0
 100
-5.0
+50.0
 1
 1
 NIL
@@ -230,6 +264,50 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+691
+167
+952
+212
+Status of Capacity
+capacity-status
+17
+1
+11
+
+MONITOR
+953
+167
+1077
+212
+Number of Buyers
+length list-of-buyers
+17
+1
+11
+
+MONITOR
+954
+213
+1078
+258
+Capacity of Pipeline
+item 0 Pipeline-Capacity-list
+17
+1
+11
+
+MONITOR
+954
+259
+1078
+304
+Demand-Capacity
+sum Buyers-Capacity-list
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
